@@ -332,6 +332,7 @@ class TTTModule(torch.nn.Module, ABC):
             ):
                 msa.append(self._ttt_tokenize(seq_msa, **kwargs).squeeze(0))
             msa = torch.stack(msa)  # [msa_len, seq_len]
+            self.ttt_logger.info(f"Number of sequences in MSA: {msa.shape[0]}")
 
             # Check the MSA contains the target sequence as the first sequence
             assert torch.all(
