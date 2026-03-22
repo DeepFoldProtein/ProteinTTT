@@ -120,12 +120,12 @@ The abstract class `proteinttt.base.TTTModule` implements all core functionality
 If you use ProteinTTT in your research, please cite the following paper:
 
 ```bibtex
-@article{bushuiev2025one,
+@article{bushuiev2026one,
   title={One protein is all you need},
   author={Bushuiev, Anton and Bushuiev, Roman and Pimenova, Olga and Zadorozhny, Nikola and Samusevich, Raman and Manaskova, Elisabet and Kim, Rachel Seongeun and St{\"a}rk, Hannes and Sedlar, Jiri and Steinegger, Martin and Tom{\'a}{\v{s}} and Sivic, Josef},
   journal={ICLR 2026 (The Fourteenth International Conference on Learning Representations)},
   url={https://arxiv.org/abs/2411.02109},
   doi={10.48550/arXiv.2411.02109},
-  year={2025}
+  year={2026}
 }
 ```
