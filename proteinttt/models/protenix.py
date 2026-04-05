@@ -115,12 +115,14 @@ class ProtenixTTT(TTTModule, Protenix):
         c_s: int = _C_S,
     ):
         Protenix.__init__(self, configs)
-        TTTModule.__init__(self, ttt_cfg=ttt_cfg)
 
         # LM head: pairformer s [N_token, c_s] → restype logits [N_token, N_RESTYPE]
-        # Read c_s from configs if available, otherwise fall back to argument
+        # TTTModule.__init__()이 _ttt_get_trainable_modules()를 호출하므로
+        # ttt_lm_head를 반드시 먼저 생성해야 함
         actual_c_s = getattr(configs.model, "c_s", c_s)
         self.ttt_lm_head = nn.Linear(actual_c_s, N_RESTYPE)
+
+        TTTModule.__init__(self, ttt_cfg=ttt_cfg)
 
         # Shared state between _ttt_sample_batch() and _ttt_predict_logits()
         self._ttt_feat_cache: T.Optional[T.Dict[str, T.Any]] = None
@@ -152,6 +154,7 @@ class ProtenixTTT(TTTModule, Protenix):
         }
         feat = self.relative_position_encoding.generate_relp(feat)
         feat = update_input_feature_dict(feat)
+        feat = {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in feat.items()}
         self._ttt_prepared_feat = feat  # reused by _ttt_sample_batch
 
         restype = feat["restype"]  # [N_token, N_RESTYPE]
@@ -369,8 +372,13 @@ class ProtenixTTT(TTTModule, Protenix):
         if "template_aatype" in masked:
             masked["template_aatype"][:, mask_pos] = 0
 
+        # update_input_feature_dict()가 CPU에 생성하는 텐서를 GPU로 올림
+        device = masked["restype"].device
+        masked = {
+            k: v.to(device) if isinstance(v, torch.Tensor) else v
+            for k, v in masked.items()
+        }
         return masked
-
     # ------------------------------------------------------------------
     # Factory
     # ------------------------------------------------------------------
@@ -394,6 +402,9 @@ class ProtenixTTT(TTTModule, Protenix):
         """
         cfg = ttt_cfg or cls.ttt_default_cfg or DEFAULT_PROTENIX_TTT_CFG
         instance = cls(model.configs, ttt_cfg=cfg, c_s=c_s)
+        model_param = next(model.parameters(), None)
+        if model_param is not None:
+            instance = instance.to(device=model_param.device, dtype=model_param.dtype)
         instance.load_state_dict(model.state_dict(), strict=False)
         if instance.ttt_cfg.initial_state_reset:
             instance._ttt_initial_state = instance._ttt_get_state()
