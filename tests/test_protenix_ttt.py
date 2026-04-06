@@ -1,4 +1,3 @@
-
 """
 Tests for ProtenixTTT (F00 design).
 
@@ -127,12 +126,12 @@ def build_feat_dict(sequence: str, configs, device: str) -> dict:
     configs.input_json_path = tmp_path
     dataloader = get_inference_dataloader(configs=configs)
     batch = next(iter(dataloader))
-    from protenix.utils.torch_utils import to_device
     feat = batch[0][0]["input_feature_dict"]
-    return to_device(feat, device)
+    return {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in feat.items()}
 
 
 def run_inference(model, feat: dict) -> dict:
+    feat = copy.deepcopy(feat)
     with torch.no_grad():
         pred_dict, _, _ = model(
             input_feature_dict=feat,
@@ -175,8 +174,8 @@ def test_protenix_ttt_improves_plddt():
 
     ttt_cfg = copy.deepcopy(DEFAULT_PROTENIX_TTT_CFG)
     ttt_cfg.seed = 0
-    ttt_cfg.steps = 5
-    ttt_cfg.lr = 1e-4
+    ttt_cfg.steps = 20
+    ttt_cfg.lr = 5*1e-4
 
     ttt_model = ProtenixTTT.from_protenix(model, ttt_cfg=ttt_cfg)
     ttt_model.eval()
@@ -303,6 +302,13 @@ def test_protenix_ttt_loss_decreases():
 
     첫 스텝 loss의 평균 > 마지막 스텝 loss의 평균 이어야 한다.
     """
+    import wandb
+    wandb.init(
+        project="ptx-ttt",
+        entity="iljangv55-deepfold",
+        name="protenix-ttt-loss-test",
+    )
+
     device = "cuda"
     model, configs = load_protenix_model(device)
 
